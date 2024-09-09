@@ -1,4 +1,4 @@
-# Tour App
+# Tour-Explorer 
 This project is a React Native mobile application that helps users explore and discover various locations based on their preferences.
 
 ## Features
