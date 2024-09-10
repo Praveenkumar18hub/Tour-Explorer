@@ -102,10 +102,24 @@ const Explore = () => {
     console.log('Selected Place:', JSON.stringify(place, null, 2));
     if (place.boundingbox) {
       const boundingBox = place.boundingbox;
-      setBl_lat(boundingBox[0]);
-      setBl_lng(boundingBox[2]);
-      setTr_lat(boundingBox[1]);
-      setTr_lng(boundingBox[3]);
+      const bl_lat_value = parseFloat(boundingBox[0]);
+      const tr_lat_value = parseFloat(boundingBox[1]);
+      const bl_lng_value = parseFloat(boundingBox[2]);
+      const tr_lng_value = parseFloat(boundingBox[3]);
+
+      const isArea = (bl_lat_value !== tr_lat_value) && (bl_lng_value !== tr_lng_value);
+
+      if (!isArea) {
+        setError('Please select an area or city');
+        setResults([]);
+        setShowSuggestions(false);
+        return; 
+      }
+
+      setBl_lat(bl_lat_value);
+      setBl_lng(bl_lng_value);
+      setTr_lat(tr_lat_value);
+      setTr_lng(tr_lng_value);
     }
 
     const location = `${place.lat},${place.lon}`;
