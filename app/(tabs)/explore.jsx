@@ -30,7 +30,7 @@ const Explore = () => {
       const getLocationAndWeather = async () => {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setError('Permission to access location was denied');
+          setError('Permission to access location was denied. Please enable it in the settings or search manually in the search bar.');
           return;
         }
 
@@ -50,12 +50,14 @@ const Explore = () => {
   useFetchLocationAndWeather();
 
   useEffect(() => {
-    setLoadingg(true);
-    getPlacesData(bl_lat, bl_lng, tr_lat, tr_lng, type).then((data) => {
-      setMainData(data);
-      setLoadingg(false); 
-    })
-  }, [bl_lat, bl_lng, tr_lat, tr_lng, type] )
+    if (bl_lat && bl_lng) {
+      setLoadingg(true);
+      getPlacesData(bl_lat, bl_lng, tr_lat, tr_lng, type)
+        .then((data) => setMainData(data))
+        .catch(() => setError('Failed to load places data'))
+        .finally(() => setLoadingg(false));
+    }
+  }, [bl_lat, bl_lng, tr_lat, tr_lng, type]);
 
   const handleSearch = async (query) => {
     if (query.trim() === '') {
@@ -86,6 +88,7 @@ const Explore = () => {
 
   const handleTextChange = (text) => {
     setSearchQuery(text);
+    setError('');
     if (text.length >= 2) {
       debouncedHandleSearch(text);
       setShowSuggestions(true);
@@ -96,40 +99,52 @@ const Explore = () => {
   };
 
   const handlePlaceSelect = async (place) => {
+    setLoading(true);
     const { address } = place;
     const formattedNameState = `${address.name}${address.state ? ', ' + address.state : ''}`;
-
+  
     console.log('Selected Place:', JSON.stringify(place, null, 2));
+    
     if (place.boundingbox) {
       const boundingBox = place.boundingbox;
       const bl_lat_value = parseFloat(boundingBox[0]);
       const tr_lat_value = parseFloat(boundingBox[1]);
       const bl_lng_value = parseFloat(boundingBox[2]);
       const tr_lng_value = parseFloat(boundingBox[3]);
-
+  
       const isArea = (bl_lat_value !== tr_lat_value) && (bl_lng_value !== tr_lng_value);
-
-      if (!isArea) {
-        setError('Please select an area or city');
+  
+      const latDifference = Math.abs(tr_lat_value - bl_lat_value);
+      const lngDifference = Math.abs(tr_lng_value - bl_lng_value);
+  
+      if (!isArea || (latDifference < 0.01 && lngDifference < 0.01)) {
+        setError('Selected place is too small. Please select a broader area.');
         setResults([]);
         setShowSuggestions(false);
+        setLoading(false);
         return; 
       }
-
+  
       setBl_lat(bl_lat_value);
       setBl_lng(bl_lng_value);
       setTr_lat(tr_lat_value);
       setTr_lng(tr_lng_value);
     }
-
-    const location = `${place.lat},${place.lon}`;
-    const weather = await getWeatherData(location);
-    setWeatherData(weather); 
-    await fetchPlaceDetails(place.lat, place.lon);
-    setSearchQuery(formattedNameState);
-    setResults([]);
-    setShowSuggestions(false);
-  };
+  
+    try {
+      const location = `${place.lat},${place.lon}`;
+      const weather = await getWeatherData(location);
+      setWeatherData(weather);
+      await fetchPlaceDetails(place.lat, place.lon);
+      setSearchQuery(formattedNameState);
+      setResults([]);
+      setShowSuggestions(false);
+    } catch (error) {
+      setError('Error fetching place details or weather data');
+    } finally {
+      setLoading(false); 
+    }
+  };  
 
   return (
     <SafeAreaView className="flex-1 relative bg-primary">
@@ -264,11 +279,22 @@ const Explore = () => {
                 ) : (
                 <>
                   <View className="w-full h-[350px] items-center">
-                    <Image 
-                      source={images.oops}
-                      resizeMode='contain'
-                      className="w-[300px] h-[300px]"
-                    />
+                    {searchQuery.trim() === '' ? (
+                      <View className="items-center flex-col space-y-2 flex-1 justify-center">
+                      <Text className="text-white text-center text-2xl font-pbold">
+                        Search a City 
+                      </Text>
+                      <Text className="text-secondary text-center text-xl font-pregular">
+                        Explore the Best spots at your Fingertips!
+                      </Text>
+                      </View>
+                      ) : (
+                      <Image 
+                        source={images.oops}
+                        resizeMode='contain'
+                        className="w-[300px] h-[300px]"
+                      />
+                    )}
                   </View>
                 </> 
               )}
