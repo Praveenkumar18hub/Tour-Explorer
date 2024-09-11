@@ -31,10 +31,14 @@ export const fetchPlaceDetails = async (lat, lon) => {
       params: {
         lat,
         lon,
+        format: 'json',
         key: LOCATIONIQ_KEY,
       },
     });
-    return data;
+    const address = data.address || {};
+    const name = address.village || 'Unknown Place';
+    const city = address.county || 'Unknown City';
+    return { name, city, data };
   } catch (error) {
     console.error('Error fetching place details:', error.message);
     throw error;
@@ -86,5 +90,26 @@ export const getWeatherData = async (location) => {
   } catch (error) {
     console.error('Error fetching weather data:', error.message);
     return null;
+  }
+};
+
+export const fetchTravelAdvisorData = async (latitude, longitude, type) => {
+  try {
+    const { data } = await axios.get(`${TRAVEL_ADVISOR_BASE_URL}${type}/list-by-latlng`, {
+      params: {
+        latitude,
+        longitude,
+        lang: 'en_US',
+        limit: '30',
+      },
+      headers: {
+        'x-rapidapi-key': RAPIDAPI_KEY,
+        'x-rapidapi-host': 'travel-advisor.p.rapidapi.com',
+      },
+    });
+    return data.data; 
+  } catch (error) {
+    console.error('Error fetching Travel Advisor data:', error.message);
+    throw error;
   }
 };

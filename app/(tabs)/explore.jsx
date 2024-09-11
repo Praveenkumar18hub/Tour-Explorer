@@ -7,8 +7,9 @@ import images from '../../constants/images';
 import icon from '../../constants/icon';
 import Container from '../../components/Container';
 import Items from '../../components/Items';
-import { searchLocations, fetchPlaceDetails, getPlacesData, getWeatherData } from '../../api';
+import { searchLocations, fetchPlaceDetails, getPlacesData, getWeatherData, fetchTravelAdvisorData } from '../../api';
 import * as Location from 'expo-location';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 const Explore = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +50,39 @@ const Explore = () => {
   };
   useFetchLocationAndWeather();
 
+  const handleCurrentLocation = async () => {
+    setLoading(true); 
+    setError('');
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setError('Permission to access location was denied.');
+        setLoading(false); 
+        return;
+      }
+  
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+  
+      const placeDetails = await fetchPlaceDetails(latitude, longitude);
+      console.log(placeDetails)
+      
+      const formattedName = `${placeDetails.name}, ${placeDetails.city}`;
+      setSearchQuery(formattedName);
+      setShowSuggestions(false);
+  
+      const weather = await getWeatherData(`${latitude},${longitude}`);
+      setWeatherData(weather);
+  
+      const data = await fetchTravelAdvisorData(latitude, longitude, type);
+      setMainData(data);
+    } catch (error) {
+      setError('Error fetching current location details or data');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
     if (bl_lat && bl_lng) {
       setLoadingg(true);
@@ -176,6 +210,9 @@ const Explore = () => {
             onChangeText={handleTextChange}
             onFocus={() => setShowSuggestions(true)}
           />
+          <TouchableOpacity onPress={handleCurrentLocation}>
+          <MaterialIcons name="my-location" size={24} color="black" />
+          </TouchableOpacity>
         </View>
 
         {error !== "" && <Text className="text-secondary font-psemibold ml-4 mt-3 mb-2">{error}</Text>}
