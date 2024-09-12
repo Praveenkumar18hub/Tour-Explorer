@@ -35,10 +35,14 @@ export const fetchPlaceDetails = async (lat, lon) => {
         key: LOCATIONIQ_KEY,
       },
     });
-    const address = data.address || {};
-    const name = address.village || 'Unknown Place';
-    const city = address.county || 'Unknown City';
-    return { name, city, data };
+    const placeDetails = data.addressparts || {};
+
+    let name = placeDetails.village || 'Unknown Place';
+    if (name === 'Unknown Place' && data.display_name) {
+      name = data.display_name.split(',')[0];  // Take only the part before the first comma
+    }
+    // const city = address.county || 'Unknown City';
+    return { name,  data };
   } catch (error) {
     console.error('Error fetching place details:', error.message);
     throw error;

@@ -14,7 +14,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 const Explore = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [type, setType] = useState("restaurants");
@@ -50,7 +50,7 @@ const Explore = () => {
   };
   useFetchLocationAndWeather();
 
-  const handleCurrentLocation = async () => {
+  const fetchLocationAndData = async () => {
     setLoading(true); 
     setError('');
     try {
@@ -60,27 +60,36 @@ const Explore = () => {
         setLoading(false); 
         return;
       }
-  
+
       let location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
-  
       const placeDetails = await fetchPlaceDetails(latitude, longitude);
       console.log(placeDetails)
-      
-      const formattedName = `${placeDetails.name}, ${placeDetails.city}`;
+      const formattedName = `${placeDetails.name}`;
       setSearchQuery(formattedName);
       setShowSuggestions(false);
-  
+
       const weather = await getWeatherData(`${latitude},${longitude}`);
       setWeatherData(weather);
-  
       const data = await fetchTravelAdvisorData(latitude, longitude, type);
       setMainData(data);
+
+      setBl_lat(latitude);
+      setBl_lng(longitude);
+
     } catch (error) {
       setError('Error fetching current location details or data');
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchLocationAndData();
+  }, []);
+
+  const handleCurrentLocation = async () => {
+    fetchLocationAndData();
   };
   
   useEffect(() => {
@@ -291,7 +300,6 @@ const Explore = () => {
             <ActivityIndicator size="large" color="#FF9C01"/>
           </View>
         ) : (
-
           <ScrollView className="mt-5">
             <View className=" flex-row flex-wrap justify-evenly items-center ">
               {mainData?.length > 0 ? (
